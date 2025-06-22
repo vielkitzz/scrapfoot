@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "express": "^5.1.0",
+    "java.io": "^2.4.0",
+    "js-yaml": "^3.14.1"
+  }
+}

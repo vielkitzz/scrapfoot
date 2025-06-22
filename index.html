@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversor de .YML para .BAN - Brasfoot</title>
+    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+    <style>
+        :root {
+            --background-color: #121212;
+            --text-color: #E0E0E0;
+            --primary-green: #28a745;
+            --hover-green: #218838;
+            --link-green: #39FF14;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background-color: #1e1e1e;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        h1 {
+            color: #ffffff;
+            margin-bottom: 25px;
+            font-size: 2em;
+        }
+
+        p {
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+
+        a {
+            color: var(--link-green);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        a:hover {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+        
+        /* Estilização customizada para o input de arquivo */
+        .file-input-wrapper {
+            margin: 30px 0;
+        }
+
+        .file-input-label {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            border: 2px dashed var(--primary-green);
+            padding: 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: block;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .file-input-label:hover {
+            background-color: #2a2a2a;
+            border-color: var(--hover-green);
+        }
+
+        #yamlFile {
+            display: none; /* Oculta o input original */
+        }
+        
+        #fileName {
+            margin-top: 15px;
+            color: var(--link-green);
+            font-weight: bold;
+        }
+
+        #convertBtn {
+            background-color: var(--primary-green);
+            color: #ffffff;
+            font-size: 1.1em;
+            font-weight: bold;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            width: 100%;
+        }
+
+        #convertBtn:hover {
+            background-color: var(--hover-green);
+        }
+
+        #convertBtn:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Conversor .YML para .BAN</h1>
+        <p>
+            Uma ferramenta baseada no <a href="https://github.com/jppianta/brasfoot-editor" target="_blank">brasfoot-editor</a> para converter arquivos YAML para o formato binário do Brasfoot.
+        </p>
+        
+        <div class="file-input-wrapper">
+            <label for="yamlFile" class="file-input-label">
+                Clique aqui para selecionar seu arquivo .YML
+            </label>
+            <input type="file" id="yamlFile" accept=".yml,.yaml">
+            <div id="fileName"></div>
+        </div>
+
+        <button id="convertBtn" disabled>Converter e Baixar .ban</button>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('yamlFile');
+        const convertBtn = document.getElementById('convertBtn');
+        const fileNameDisplay = document.getElementById('fileName');
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                fileNameDisplay.textContent = `Arquivo: ${fileInput.files[0].name}`;
+                convertBtn.disabled = false;
+            } else {
+                fileNameDisplay.textContent = '';
+                convertBtn.disabled = true;
+            }
+        });
+
+        convertBtn.addEventListener('click', () => {
+            if (fileInput.files.length === 0) {
+                alert('Por favor, selecione um arquivo .yml primeiro.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const yamlData = jsyaml.load(event.target.result);
+
+                    fetch('/converter', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(yamlData),
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Falha na resposta do servidor.');
+                        }
+                        return response.blob();
+                    })
+                    .then(blob => {
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.style.display = 'none';
+                        a.href = url;
+                        const originalFileName = fileInput.files[0].name;
+                        a.download = originalFileName.replace(/\.ya?ml$/, '.ban');
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        a.remove();
+                    })
+                    .catch(error => {
+                        console.error('Erro:', error);
+                        alert('Ocorreu um erro durante a conversão.');
+                    });
+
+                } catch (e) {
+                    alert('Erro ao processar o arquivo YAML. Verifique se o formato está correto.');
+                    console.error(e);
+                }
+            };
+
+            reader.readAsText(fileInput.files[0]);
+        });
+    </script>
+
+</body>
+</html>
